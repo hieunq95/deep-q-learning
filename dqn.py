@@ -10,6 +10,7 @@ from keras.optimizers import Adam
 EPISODES = 1000
 
 class DQNAgent:
+    # initialize parameters
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
@@ -20,7 +21,15 @@ class DQNAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
-
+    """
+    build model for a DQN agent
+    @input: null
+    @:param Dense: layer
+            input, output demensions
+            number of nodes
+            activation function, loss, optimizer
+    @:return: model         
+    """
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
@@ -30,16 +39,33 @@ class DQNAgent:
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
         return model
-
+    """
+    memory queue of previous experiences
+    @input: state, action, reward, next_state, done
+    @:return: memory queue
+    """
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
-
+    """
+    Policy function that choose an action which leads to maximum value
+    @input: current state
+    @:param: model.predict(state)
+             epsilon
+    @:return: an optimal action
+    """
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # returns action
-
+    """
+    Experience replay
+    @input: batch_size
+    @:param: state, action, reward, next_state, done
+             map(state) -> future discounted reward: model.predict(state)
+             train neural net: model.fit(state, target_f) 
+    @:return: null         
+    """
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state, done in minibatch:
@@ -49,6 +75,10 @@ class DQNAgent:
                           np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target
+            # Hieunq-adds
+            # target_printer = list((target, target_f))
+            # print(target_printer)
+            # Hieunq-adde
             self.model.fit(state, target_f, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
@@ -79,6 +109,10 @@ if __name__ == "__main__":
             reward = reward if not done else -10
             next_state = np.reshape(next_state, [1, state_size])
             agent.remember(state, action, reward, next_state, done)
+            # Hieunq-adds
+            env_printer = list((state, action, reward, next_state, _))
+            print(env_printer)
+            # Hieunq-adde
             state = next_state
             if done:
                 print("episode: {}/{}, score: {}, e: {:.2}"
