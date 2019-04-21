@@ -57,6 +57,7 @@ class DQNAgent:
             return random.randrange(self.action_size)
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # returns action
+
     """
     Experience replay
     @input: batch_size
@@ -73,10 +74,11 @@ class DQNAgent:
                 target = (reward + self.gamma *
                           np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
+            print(target_f)
             target_f[0][action] = target
             # Hieunq-adds
-            # target_printer = list((target, target_f))
-            # print(target_printer)
+            target_printer = list((target, target_f))
+            print(target_printer)
             # Hieunq-adde
             self.model.fit(state, target_f, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
@@ -110,7 +112,7 @@ if __name__ == "__main__":
             agent.remember(state, action, reward, next_state, done)
             # Hieunq-adds
             env_printer = list((state, action, reward, next_state, _))
-            print(env_printer)
+            # print(env_printer)
             # Hieunq-adde
             state = next_state
             if done:

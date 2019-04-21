@@ -2,6 +2,7 @@
 
 import gym
 import numpy as np
+import random
 from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense
@@ -29,15 +30,29 @@ class CarAgent:
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
 
-    def remember(self, state, action, reward, nex_state, done):
-        self.memory.append((state, action, reward, nex_state, done))
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return np.random.randn(self.action_size)
         act_values = self.model.predict(state)
+        print("act_values {}".format(act_values))
         return np.argmax(act_values[0])
 
+    def replay(self, batch_size):
+        minibatch = random.sample(self.memory, batch_size)
+        for state, action, reward, next_state, done in minibatch:
+            target = reward
+            if not done:
+                target = reward + self.gamma*np.amax(self.model.predict(next_state)[0])
+            target_f = self.model.predict(state)
+            print("target_f {}".format(target_f))
+            target_f[0][target] = target
+            # print("target_f[0][target]".format(target_f))
+            self.model.fit(state, target_f, epochs=1, verbose=0)
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
 
 if __name__ == "__main__":
@@ -47,19 +62,30 @@ if __name__ == "__main__":
     agent = CarAgent(state_size, action_size)
     done = False
     batch_size = 32
-
     print(action_size, state_size)
+
     for i_episode in range(EPISODE):
+        state = env.reset()
+        state = np.reshape(state, [1, state_size])
         observation = env.reset()
-        print(observation)
-        for t in range(100):
+        # print(observation)
+        for t in range(500):
             env.render()
-            action = env.action_space.sample()
+            action = agent.act(state)
+            print("action {}".format(action))
             observation, reward, done, info = env.step(action)
-            obslist = list((observation, action, reward, done, info))
-            print(obslist)
+            reward = 100-reward**2
+            next_state = np.reshape(observation, [1, state_size])
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
+
+            obslist = list((observation, next_state, action, reward, done, info))
+            # print(obslist)
             if done:
-                print("Episode finished after {} timesteps".format(t+1))
+                print("Episode finished after {} timesteps, Score {}".format(t+1, reward))
+                break
+            # if len(agent.memory) > batch_size:
+            #     agent.replay(batch_size)
         print("End episode {}".format(i_episode))
 
     env.close()
