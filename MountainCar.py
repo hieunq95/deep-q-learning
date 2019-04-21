@@ -14,7 +14,7 @@ class CarAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=5000)
         self.gamma = 0.95 # discount rate
         self.epsilon = 1.0 # exploration rate
         self.epsilon_min = 0.01
@@ -26,6 +26,7 @@ class CarAgent:
         model = Sequential()
         model.add(Dense(24, input_dim=state_size, activation='relu'))
         model.add(Dense(24, activation='relu'))
+        model.add(Dense(24, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
@@ -35,9 +36,9 @@ class CarAgent:
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
-            return np.random.randn(self.action_size)
+            return random.randrange(self.action_size)
         act_values = self.model.predict(state)
-        print("act_values {}".format(act_values))
+        # print("act_values {}".format(act_values))
         return np.argmax(act_values[0])
 
     def replay(self, batch_size):
@@ -45,20 +46,20 @@ class CarAgent:
         for state, action, reward, next_state, done in minibatch:
             target = reward
             if not done:
-                target = reward + self.gamma*np.amax(self.model.predict(next_state)[0])
+                target = (reward + self.gamma *
+                          np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
-            print("target_f {}".format(target_f))
-            target_f[0][target] = target
-            # print("target_f[0][target]".format(target_f))
+            target_f[0][action] = target
             self.model.fit(state, target_f, epochs=1, verbose=0)
+
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
 
 if __name__ == "__main__":
-    env = gym.make('MountainCarContinuous-v0')
+    env = gym.make('MountainCar-v0')
     state_size = env.observation_space.shape[0]
-    action_size = env.action_space.shape[0]
+    action_size = env.action_space.n
     agent = CarAgent(state_size, action_size)
     done = False
     batch_size = 32
@@ -67,27 +68,24 @@ if __name__ == "__main__":
     for i_episode in range(EPISODE):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
-        observation = env.reset()
+        # observation = state
         # print(observation)
-        for t in range(500):
+        for t in range(200):
             env.render()
             action = agent.act(state)
-            print("action {}".format(action))
-            observation, reward, done, info = env.step(action)
-            reward = 100-reward**2
-            next_state = np.reshape(observation, [1, state_size])
+            # print("action {}".format(action))
+            next_state, reward, done, info = env.step(action)
+            reward = reward if not done else -10
+            next_state = np.reshape(next_state, [1, state_size])
             agent.remember(state, action, reward, next_state, done)
             state = next_state
-
-            obslist = list((observation, next_state, action, reward, done, info))
+            # obslist = list((observation, next_state, action, reward, done, info))
             # print(obslist)
             if done:
-                print("Episode finished after {} timesteps, Score {}".format(t+1, reward))
+                print("Episode {} finished after {} timesteps, reward {}, epsilon {}".format(i_episode, t+1, reward, agent.epsilon))
                 break
-            # if len(agent.memory) > batch_size:
-            #     agent.replay(batch_size)
-        print("End episode {}".format(i_episode))
-
+        if len(agent.memory) > batch_size:
+            agent.replay(batch_size)
     env.close()
 
 

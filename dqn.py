@@ -56,17 +56,19 @@ class DQNAgent:
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         act_values = self.model.predict(state)
+        # print("act_values {}".format(act_values))
         return np.argmax(act_values[0])  # returns action
 
-    """
-    Experience replay
-    @input: batch_size
-    @:param: state, action, reward, next_state, done
-             map(state) -> future discounted reward: model.predict(state)
-             train neural net: model.fit(state, target_f) 
-    @:return: null         
-    """
+
     def replay(self, batch_size):
+        """
+            Experience replay
+            @input: batch_size
+            @:param: state, action, reward, next_state, done
+                     map(state) -> future discounted reward: model.predict(state)
+                     train neural net: model.fit(state, target_f)
+            @:return: null
+            """
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state, done in minibatch:
             target = reward
@@ -74,11 +76,11 @@ class DQNAgent:
                 target = (reward + self.gamma *
                           np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
-            print(target_f)
+            # print(target_f)
             target_f[0][action] = target
             # Hieunq-adds
             target_printer = list((target, target_f))
-            print(target_printer)
+            # print(target_printer)
             # Hieunq-adde
             self.model.fit(state, target_f, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
@@ -111,7 +113,7 @@ if __name__ == "__main__":
             next_state = np.reshape(next_state, [1, state_size])
             agent.remember(state, action, reward, next_state, done)
             # Hieunq-adds
-            env_printer = list((state, action, reward, next_state, _))
+            # env_printer = list((state, action, reward, next_state, _))
             # print(env_printer)
             # Hieunq-adde
             state = next_state
