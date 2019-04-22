@@ -63,10 +63,13 @@ class DQNAgent:
     def replay(self, batch_size):
         """
             Experience replay
+
             @input: batch_size
+
             @:param: state, action, reward, next_state, done
                      map(state) -> future discounted reward: model.predict(state)
                      train neural net: model.fit(state, target_f)
+
             @:return: null
             """
         minibatch = random.sample(self.memory, batch_size)
